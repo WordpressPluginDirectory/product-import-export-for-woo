@@ -1,11 +1,10 @@
 === Product Import Export for WooCommerce===
 Contributors: webtoffee
-Donate link: https://www.webtoffee.com/plugins/
-Tags: product export, product import, CSV import export, woocommerce, CSV, product, export, import, woocommerce product import, woocommerce import products, export woocommerce products, importer
+Tags: product export, product import, CSV import export, woocommerce product import, export woocommerce products
 Requires at least: 3.0.1
-Tested up to: 6.5
+Tested up to: 6.6.1
 Requires PHP: 5.6
-Stable tag: 2.4.3
+Stable tag: 2.4.6
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -18,8 +17,6 @@ Export and import your WooCommerce products (simple, grouped, external/affiliate
 Inventory updates, syncing products, data filtration, and automatic column mapping are some of the main peculiarities of this product importer plugin.
 
 With the latest update, we have integrated ChatGPT API with our plugin. Now the plugin will automatically generate product descriptions for products without existing descriptions. Thanks to Generative AI!
-
-**See how the plugin works:<a rel="nofollow" href="https://demo.tastewp.com/product-import-export"> Try out demo </a>** 
 
 <strong>To import and export variable products, upgrade to the premium version of <a href="https://www.webtoffee.com/product/product-import-export-woocommerce/">WooCommerce Product Import Export</a></strong>.
 
@@ -62,7 +59,7 @@ With this plugin, you can export and import WooCommerce products to and from a C
 * <strong>Save frequently used import/export configurations</strong> as templates and use the template for future imports and exports.
 * The plugin <strong>stores all the past imports and exports</strong> and <strong>lets you re-run</strong> them when needed.
 * <strong>Easy debugging:</strong> View and download import log for debugging purpose.
-* Tested OK with WooCommerce 8.7.0
+* Tested OK with WooCommerce 9.2.3
 
 ###COMPATIBLE PLUGINS###
 
@@ -233,11 +230,19 @@ Yes, you can import grouped, affiliate/external products in addition to simple p
 
 == CHANGELOG ==
 
+= 2.4.6 2024-08-30 =
+* [Compatibility]-Tested Ok with WooCommerce 9.2.3
+* [Compatibility] - Tested OK with WordPress 6.6.1
+= 2.4.5 2024-07-15 =
+* [Compatibility]-Tested Ok with WooCommerce 9.1.2
+* [Compatibility] - Tested OK with WordPress 6.6
+= 2.4.4 2024-05-09 =
+* [Compatibility]-Tested Ok with WooCommerce 8.8.3
+* [Compatibility] - Tested OK with WordPress 6.5.3
 = 2.4.3 2024-03-26 =
 * [Improvement] - Implemented a user interface update for the import/export screen, transitioning to a card-based layout for post type selection.
 * [Compatibility]-Tested Ok with WooCommerce 8.7.0
 * [Compatibility] - Tested OK with WordPress 6.5
-
 = 2.4.2 2024-02-28 =
 * [Fix] - Added Image extension restriction in product category.
 * [Compatibility]-Tested Ok with WooCommerce 8.6.1
@@ -677,7 +682,7 @@ Yes, you can import grouped, affiliate/external products in addition to simple p
 
 == Upgrade Notice ==
 
-= 2.4.3 =
-* [Improvement] - Implemented a user interface update for the import/export screen, transitioning to a card-based layout for post type selection.
-* [Compatibility]-Tested Ok with WooCommerce 8.7.0
-* [Compatibility] - Tested OK with WordPress 6.5
+= 2.4.6 =
+* [Compatibility]-Tested Ok with WooCommerce 9.2.3
+* [Compatibility] - Tested OK with WordPress 6.6.1
+
