@@ -2,8 +2,13 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+// Check if banner HTML should be displayed instead of table
+if (isset($meta_mapping_screen_field_val['banner_html']) && !empty($meta_mapping_screen_field_val['banner_html'])) {
+    echo wp_kses_post($meta_mapping_screen_field_val['banner_html']);
+} else {
 ?>
-<table class="wt-iew-mapping-tb wt-iew-exporter-meta-mapping-tb" data-field-type="<?php echo $meta_mapping_screen_field_key; ?>">
+<table class="wt-iew-mapping-tb wt-iew-exporter-meta-mapping-tb" data-field-type="<?php echo esc_attr($meta_mapping_screen_field_key); ?>">
 	<thead>
 		<tr>
     		<th>
@@ -11,10 +16,10 @@ if (!defined('ABSPATH')) {
     			$is_checked=(isset($meta_mapping_screen_field_val['checked']) && $meta_mapping_screen_field_val['checked']==1 ? 1 : 0);
     			$checked_attr=($is_checked==1 ? ' checked="checked"' : '');
     			?>
-    			<input type="checkbox" name="" class="wt_iew_mapping_checkbox_main" <?php echo $checked_attr; ?>>
+    			<input type="checkbox" name="" class="wt_iew_mapping_checkbox_main" <?php echo esc_attr($checked_attr); ?>>
     		</th>
-    		<th width="35%"><?php _e('Column');?></th>
-    		<th><?php _e('Column name');?></th>
+    		<th width="35%"><?php esc_html_e('Column', 'product-import-export-for-woo');?></th>
+    		<th><?php esc_html_e('Column name', 'product-import-export-for-woo');?></th>
     	</tr>
 	</thead>
 	<tbody>
@@ -46,11 +51,14 @@ if (!defined('ABSPATH')) {
 			?>
 			<tr>
 				<td colspan="3" style="text-align:center;">
-					<?php _e('No fields found.'); ?>
+					<?php esc_html_e('No fields found.', 'product-import-export-for-woo'); ?>
 				</td>
 			</tr>
 			<?php
 		}
 		?>
 	</tbody>
-</table>   
+</table>
+<?php
+}
+?>   

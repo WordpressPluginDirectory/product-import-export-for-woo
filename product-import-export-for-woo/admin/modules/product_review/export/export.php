@@ -32,8 +32,8 @@ class Wt_Import_Export_For_Woo_Basic_Product_Review_Export {
         $stars = !empty($form_data['filter_form_data']['wt_iew_stars']) ? $form_data['filter_form_data']['wt_iew_stars'] : '';
         $owner = !empty($form_data['filter_form_data']['wt_iew_owner']) ? $form_data['filter_form_data']['wt_iew_owner'] : '';
         $products = !empty($form_data['filter_form_data']['wt_iew_product']) ? $form_data['filter_form_data']['wt_iew_product'] : '';
-        $pr_rev_date_from = !empty($form_data['filter_form_data']['wt_iew_date_from']) ? $form_data['filter_form_data']['wt_iew_date_from'] : date('Y-m-d 00:00', 0);
-        $pr_rev_date_to = !empty($form_data['filter_form_data']['wt_iew_date_to']) ? $form_data['filter_form_data']['wt_iew_date_to'] : date('Y-m-d 23:59', current_time('timestamp'));
+        $pr_rev_date_from = !empty($form_data['filter_form_data']['wt_iew_date_from']) ? $form_data['filter_form_data']['wt_iew_date_from'] : gmdate('Y-m-d 00:00', 0);
+        $pr_rev_date_to = !empty($form_data['filter_form_data']['wt_iew_date_to']) ? $form_data['filter_form_data']['wt_iew_date_to'] : gmdate('Y-m-d 23:59', current_time('timestamp'));
         $pr_rev_status = !empty($form_data['filter_form_data']['wt_iew_status']) ? $form_data['filter_form_data']['wt_iew_status'] : '';
         $sortcolumn = !empty($form_data['filter_form_data']['wt_iew_sort_columns']) ? $form_data['filter_form_data']['wt_iew_sort_columns'] : 'comment_ID';
         $export_sort_order = !empty($form_data['filter_form_data']['wt_iew_order_by']) ? $form_data['filter_form_data']['wt_iew_order_by'] : 'ASC';
@@ -75,9 +75,22 @@ class Wt_Import_Export_For_Woo_Basic_Product_Review_Export {
                     ),
                 ),
             );
-			if($pr_rev_status){
-				$args['post_status'] = $pr_rev_status;
-			}
+
+			if($pr_rev_status) {
+                $status_mapping = array(
+                    'Approved' => 'approve',
+                    'Pending' => 'hold',
+                    'Spam' => 'spam', 
+                    'Trash' => 'trash'
+                );
+
+                $args['status'] = is_array($pr_rev_status) 
+                    ? array_map(function($status) use ($status_mapping) {
+                        return isset($status_mapping[$status]) ? $status_mapping[$status] : $status;
+                    }, $pr_rev_status)
+                    : (isset($status_mapping[$pr_rev_status]) ? $status_mapping[$pr_rev_status] : $pr_rev_status);
+
+            }
             
 //            if($export_reply == ''){ 
 //                $args['hierarchical'] = 'threaded'; // threaded  flat
@@ -141,6 +154,11 @@ class Wt_Import_Export_For_Woo_Basic_Product_Review_Export {
 
             $return['total'] = $total_records;
             $return['data'] = $data_array;
+
+            if ( 0 === $batch_offset && 0 === $total_records ) {
+                $return['no_post'] = __( 'Nothing to export under the selected criteria. Please check and try adjusting the filters.', 'product-import-export-for-woo');
+            }
+
             return $return;
         }
       
@@ -207,7 +225,7 @@ class Wt_Import_Export_For_Woo_Basic_Product_Review_Export {
                     continue;
                 }
                 if ($column == 'product_title' && !empty($temp_product_id)) {
-                    $temp_product_object = ( isset($temp_product_id) && WC()->version >= '3.0') ? wc_get_product($temp_product_id) : get_product($temp_product_id);
+                    $temp_product_object = ( isset($temp_product_id) && version_compare( WC()->version, '3.0', '>=' ) ) ? wc_get_product($temp_product_id) : get_product($temp_product_id);
                     $row[$column] = $temp_product_object->get_title();
                     continue;
                 }

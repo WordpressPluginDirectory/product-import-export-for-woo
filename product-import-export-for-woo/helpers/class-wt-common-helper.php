@@ -29,20 +29,23 @@ class Wt_Import_Export_For_Woo_Basic_Common_Helper
    }
 
    public static function wt_get_product_id_by_sku($sku){
-       global $wpdb;
-       $post_exists_sku = $wpdb->get_var($wpdb->prepare("
-                   SELECT $wpdb->posts.ID
-                   FROM $wpdb->posts
-                   LEFT JOIN $wpdb->postmeta ON ( $wpdb->posts.ID = $wpdb->postmeta.post_id )
-                   WHERE $wpdb->posts.post_status IN ( 'publish', 'private', 'draft', 'pending', 'future' )
-                   AND $wpdb->postmeta.meta_key = '_sku' AND $wpdb->postmeta.meta_value = '%s'
-                   ", $sku));   
-       if ($post_exists_sku) {
-           return $post_exists_sku;
-       }
-       return false;
+        global $wpdb;
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $post_exists_sku = $wpdb->get_var($wpdb->prepare("
+                    SELECT $wpdb->posts.ID
+                    FROM $wpdb->posts
+                    LEFT JOIN $wpdb->postmeta ON ( $wpdb->posts.ID = $wpdb->postmeta.post_id )
+                    WHERE $wpdb->posts.post_status IN ( 'publish', 'private', 'draft', 'pending', 'future' )
+                    AND $wpdb->postmeta.meta_key = '_sku' AND $wpdb->postmeta.meta_value = %s
+                    ", $sku));
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        if ($post_exists_sku) {
+            return $post_exists_sku;
+        }
+        return false;
 
-   }
+    }
+
 
    /**
     * To strip the specific string from the array key as well as value.
@@ -67,7 +70,8 @@ class Wt_Import_Export_For_Woo_Basic_Common_Helper
         $warn_icon='<span class="dashicons dashicons-warning"></span>&nbsp;';
         if(!version_compare(WT_P_IEW_VERSION, $min_version, '>=')) /* not matching the min version */
         {
-            self::$min_version_msg.=$warn_icon.sprintf(__("The %s requires a minimum version of %s %s. Please upgrade the %s accordingly."), "<b>$post_type_title</b>", "<b>".WT_P_IEW_PLUGIN_NAME."</b>", "<b>v$min_version</b>", "<b>".WT_P_IEW_PLUGIN_NAME."</b>").'<br />';
+            /* translators: %1$s: Post type title, %2$s: Plugin name, %3$s: Minimum version, %4$s: Plugin name */
+            self::$min_version_msg.=$warn_icon.sprintf(__("The %1\$s requires a minimum version of %2\$s %3\$s. Please upgrade the %4\$s accordingly.", 'product-import-export-for-woo'), "<b>$post_type_title</b>", "<b>".WT_P_IEW_PLUGIN_NAME."</b>", "<b>v$min_version</b>", "<b>".WT_P_IEW_PLUGIN_NAME."</b>").'<br />';
             add_action('admin_notices', array(__CLASS__, 'no_minimum_base_version') );
             return false;
         }
@@ -84,7 +88,7 @@ class Wt_Import_Export_For_Woo_Basic_Common_Helper
         <div class="notice notice-warning">
             <p>
                 <?php 
-                echo self::$min_version_msg;
+                echo wp_kses_post(self::$min_version_msg);
                 ?>
             </p>
         </div>
@@ -133,77 +137,115 @@ class Wt_Import_Export_For_Woo_Basic_Common_Helper
      * @return mixed Unserialized data (only int, string, bool, array)
      */
     public static function wt_unserialize_safe($data) {
-
-        if( empty($data) ) {
+        if ( empty( $data ) ) {
             return false;
-        } 
-        $offset = 0;
+        }
     
-        // Recursive function to handle different types.
-        $unserialize_value = function(&$offset) use ($data, &$unserialize_value) {
+        $offset = 0;
+        $references = array();
+    
+        $unserialize_value = function (&$offset) use ($data, &$unserialize_value, &$references) {
+            if ( ! isset( $data[$offset] ) ) {
+                return false;
+            }
+    
             $type = $data[$offset];
             $offset++;
     
             switch ($type) {
-                case 's': // String.
-                    preg_match('/:(\d+):"/', $data, $matches, 0, $offset);
-                    $length = (int) $matches[1];
+                case 's': // String
+                    if (!preg_match('/:(\d+):"/', $data, $matches, 0, $offset)) return false;
+                    $length = (int)$matches[1];
                     $offset += strlen($matches[0]);
                     $value = substr($data, $offset, $length);
-                    $offset += $length + 2; // Skip closing quotes and semicolon.
+                    $offset += $length + 2;
+                    $references[] = $value;
                     return $value;
     
-                case 'i': // Integer.
-                    preg_match('/:(-?\d+);/', $data, $matches, 0, $offset);
+                case 'U': // Unicode string (like string)
+                    if (!preg_match('/:(\d+):"/', $data, $matches, 0, $offset)) return false;
+                    $length = (int)$matches[1];
                     $offset += strlen($matches[0]);
-                    return (int) $matches[1];
+                    $value = mb_substr($data, $offset, $length, 'UTF-8');
+                    $offset += $length + 2;
+                    $references[] = $value;
+                    return $value;
     
-                case 'd': // Float/Double.
-                    preg_match('/:(-?\d+(\.\d+)?);/', $data, $matches, 0, $offset);
+                case 'i': // Integer
+                    if (!preg_match('/:(-?\d+);/', $data, $matches, 0, $offset)) return false;
                     $offset += strlen($matches[0]);
-                    return (float) $matches[1];
+                    $value = (int)$matches[1];
+                    $references[] = $value;
+                    return $value;
     
-                case 'b': // Boolean.
-                    preg_match('/:(\d);/', $data, $matches, 0, $offset);
+                case 'd': // Double
+                    if (!preg_match('/:(-?\d+(\.\d+)?);/', $data, $matches, 0, $offset)) return false;
                     $offset += strlen($matches[0]);
-                    return (bool) $matches[1];
+                    $value = (float)$matches[1];
+                    $references[] = $value;
+                    return $value;
     
-                case 'N': // NULL.
-                    $offset += 1; // Move past ';'.
-                    return false;
-    
-                case 'a': // Array.
-                    preg_match('/:(\d+):{/', $data, $matches, 0, $offset);
-                    $num_elements = (int) $matches[1];
+                case 'b': // Boolean
+                    if (!preg_match('/:(\d);/', $data, $matches, 0, $offset)) return false;
                     $offset += strlen($matches[0]);
+                    $value = (bool)$matches[1];
+                    $references[] = $value;
+                    return $value;
     
+                case 'N': // NULL
+                    $offset += 1;
+                    $references[] = null;
+                    return null;
+    
+                case 'a': // Array
+                    if (!preg_match('/:(\d+):{/', $data, $matches, 0, $offset)) return false;
+                    $num_elements = (int)$matches[1];
+                    $offset += strlen($matches[0]);
                     $result = array();
+                    $references[] = &$result;
+    
                     for ($i = 0; $i < $num_elements; $i++) {
                         $key = $unserialize_value($offset);
                         $value = $unserialize_value($offset);
                         $result[$key] = $value;
                     }
     
-                    $offset++; // Move past closing '}'.
+                    $offset++; // Skip '}'
                     return $result;
     
-                case 'O': // Object (Convert to Array).
-                    preg_match('/:(\d+):"([^"]+)":(\d+):{/', $data, $matches, 0, $offset);
-                    $num_properties = (int) $matches[3];
+                case 'O': // Object (as array)
+                    if (!preg_match('/:(\d+):"([^"]+)":(\d+):{/', $data, $matches, 0, $offset)) return false;
+                    $num_properties = (int)$matches[3];
                     $offset += strlen($matches[0]);
-    
                     $result = array();
+                    $references[] = &$result;
+    
                     for ($i = 0; $i < $num_properties; $i++) {
                         $key = $unserialize_value($offset);
                         $value = $unserialize_value($offset);
                         $result[$key] = $value;
                     }
     
-                    $offset++; // Move past closing '}'.
-                    return $result; // Object converted into an array.
+                    $offset++; // Skip '}'
+                    return $result;
+    
+                case 'r': // Reference
+                    if (!preg_match('/:(\d+);/', $data, $matches, 0, $offset)) return false;
+                    $offset += strlen($matches[0]);
+                    $ref_id = (int)$matches[1] - 1;
+                    return $references[$ref_id] ?? null;
+    
+                case 'R': // Object reference (rare)
+                    if (!preg_match('/:(\d+);/', $data, $matches, 0, $offset)) return false;
+                    $offset += strlen($matches[0]);
+                    $ref_id = (int)$matches[1] - 1;
+                    return $references[$ref_id] ?? null;
+    
+                case 'C': // Custom-serialized object => UNSAFE
+                    // Skip entirely — executing unserialize() on custom class is unsafe
+                    return false;
     
                 default:
-                    // Skip unsupported type.
                     return false;
             }
         };
@@ -339,11 +381,9 @@ class Wt_Import_Export_For_Woo_Basic_Common_Helper
         return apply_filters('wt_iew_allowed_screens_basic', $screens);
 
     }
-    public static function wt_get_current_page(){        
-        if (isset($_GET['page'])) {
-            return $_GET['page'];
-        }
-        return '';
+    public static function wt_get_current_page(){   
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce not required.
+        return isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
     }
     
     public static function wt_is_screen_allowed(){
@@ -454,11 +494,11 @@ function wt_wp_star_rating( $args = array() ) {
 
 	if ( $parsed_args['number'] ) {
 		/* translators: 1: The rating, 2: The number of ratings. */
-		$format = _n( '%1$s rating based on %2$s rating', '%1$s rating based on %2$s ratings', $parsed_args['number'] );
+		$format = _n( '%1$s rating based on %2$s rating', '%1$s rating based on %2$s ratings', $parsed_args['number'], 'product-import-export-for-woo' );
 		$title  = sprintf( $format, number_format_i18n( $rating, 1 ), number_format_i18n( $parsed_args['number'] ) );
 	} else {
 		/* translators: %s: The rating. */
-		$title = sprintf( __( '%s rating' ), number_format_i18n( $rating, 1 ) );
+		$title = sprintf( __( '%s rating', 'product-import-export-for-woo' ), number_format_i18n( $rating, 1 ) );
 	}
 
 	$output  = '<div class="wt-star-rating">';
@@ -469,7 +509,7 @@ function wt_wp_star_rating( $args = array() ) {
 	$output .= '</div>';
 
 	if ( $parsed_args['echo'] ) {
-		echo $output;
+		echo wp_kses_post($output);
 	}
 
 	return $output;
